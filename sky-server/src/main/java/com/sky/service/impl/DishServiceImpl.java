@@ -101,11 +101,61 @@ public class DishServiceImpl implements DishService {
         }
 
         //菜品删除---删除菜品表中的菜品
-        for(Long id : ids) {
-            dishMapper.deleteById(id);
+//        for(Long id : ids) {
+//            dishMapper.deleteById(id);
+//
+//            //菜品删除---删除口味表中的对应口味
+//            dishFlavorMapper.deleteByDishId(id);
+//        }
 
-            //菜品删除---删除口味表中的对应口味
-            dishFlavorMapper.deleteByDishId(id);
+        //根据菜品id集合批量删除菜品数据
+        dishMapper.deleteByIds(ids);
+
+        //根据菜品id集合批量删除关联的口味数据
+        dishFlavorMapper.deleteByDishIds(ids);
+    }
+
+    /**
+     * 根据id查询菜品和对应的口味数据
+     * @param id
+     * @return
+     */
+    public DishVO getByIdWithFlavor(Long id) {
+        //根据id查询菜品
+        Dish dish = dishMapper.getById(id);
+
+        //根据菜品id查询口味
+        List<DishFlavor> dishFlavors = dishFlavorMapper.getByDishId(id);
+
+        //封装查询到的数据到VO
+        DishVO dishVO = new DishVO();
+        BeanUtils.copyProperties(dish, dishVO);
+        dishVO.setFlavors(dishFlavors);
+
+        return dishVO;
+    }
+
+    /**
+     * 根据id修改菜品基本信息和对应的口味信息
+     * @param dishDTO
+     */
+    public void updateWithFlavor(DishDTO dishDTO) {
+        //修改菜品表中基本信息
+        Dish dish = new Dish();
+        BeanUtils.copyProperties(dishDTO, dish);
+        dishMapper.update(dish);
+
+        //删除现有的口味数据
+        dishFlavorMapper.deleteByDishId(dishDTO.getId());
+
+        //重新输入新传入的口味数据
+        List<DishFlavor> flavors = dishDTO.getFlavors();
+        if(flavors!=null&&flavors.size()>0){
+            flavors.forEach(dishFlavor -> {
+                dishFlavor.setDishId(dishDTO.getId());
+            });
+            dishFlavorMapper.insertBatch(flavors);
         }
+
     }
 }
